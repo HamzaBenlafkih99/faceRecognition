@@ -12,3 +12,7 @@ body {
 p {
   color: #d9ecf5;
 }
+
+.couleur {
+  background-color: rgba(1, 1, 1, 0.151);
+}

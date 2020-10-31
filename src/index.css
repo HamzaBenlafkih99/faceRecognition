@@ -9,10 +9,6 @@ body {
   font-family: Consolas, monaco, monospace;
 }
 
-p {
-  color: #d9ecf5;
-}
-
 .couleur {
   background-color: rgba(1, 1, 1, 0.151);
 }

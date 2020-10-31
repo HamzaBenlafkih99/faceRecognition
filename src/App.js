@@ -7,6 +7,8 @@ import Rank from './components/Rank/Rank';
 import Signin from './components/Signin/Signin';
 import FaceRecognition from './components/FaceRecognition/FaceRecognition';
 import Register from './components/Register/Register';
+import Modal from './components/Modal/Modal';
+import Profile from './components/Profile/Profile';
 
 import './App.css';
 
@@ -22,23 +24,28 @@ const particlesOptions = {
   }
 }
 
+const initialState = {
+  input: '',
+  imageUrl: '',
+  boxs: [],
+  route: 'signin',
+  isSignedIn: false,
+  isProfileOpen: false,
+  user: {
+    id: '',
+    name: '',
+    email: '',
+    entries: 0,
+    joined: '',
+    age: '',
+    pet: ''
+  }
+}
+
 class App extends React.Component {
   constructor(){
     super();
-    this.state = {
-      input: '',
-      imageUrl: '',
-      box: {},
-      route: 'signin',
-      isSignedIn: false,
-      user: {
-        id: '',
-        name: '',
-        email: '',
-        entries: 0,
-        joinedAt: new Date()
-      }
-    }
+    this.state = initialState;
   }
 
   loadUser = data => {
@@ -47,27 +54,29 @@ class App extends React.Component {
       name: data.name,
       email: data.email,
       entries: data.entries,
-      joinedAt: data.joinedAt
+      joined: data.joined
     } 
     })
   }
 
   calculateFaceLocation = data => {
-    const clarifaiFace = data.outputs[0].data.regions[0].region_info.bounding_box;
     const image = document.getElementById('inputimage');
     const width = Number(image.width);
     const height = Number(image.height);
-
-    return {
-      leftCol: clarifaiFace.left_col * width,
-      topRow: clarifaiFace.top_row * height,
-      rightCol: width - (clarifaiFace.right_col * width),
-      bottomRow: height - (clarifaiFace.bottom_row * height)
-    }
+    const clarifaiFace = data.outputs[0].data.regions.map(region => {
+      const position = region.region_info.bounding_box
+      return {
+        leftCol: position.left_col * width,
+        topRow: position.top_row * height,
+        rightCol: width - (position.right_col * width),
+        bottomRow: height - (position.bottom_row * height)
+      }
+    })
+    return clarifaiFace;
   }
 
-  displayFaceBox = box => {
-    this.setState({ box });
+  displayFaceBox = boxs => {
+    this.setState({ boxs });
   }
 
   onInputChange = event => {
@@ -107,11 +116,18 @@ class App extends React.Component {
 
   onRouteChange = route => {
     if (route === 'signout') {
-      this.setState({isSignedIn: false})
+      return this.setState(initialState)
     } else if (route === 'home') {
       this.setState({isSignedIn: true})
     }
     this.setState({route: route});
+  }
+
+  toggelModal = () => {
+    this.setState(prevState => ({
+      ...prevState,
+      isProfileOpen: !prevState.isProfileOpen
+    }))
   }
 
  render(){
@@ -120,7 +136,20 @@ class App extends React.Component {
       <Particles className='particles'
           params={particlesOptions}
       />
-      <Navigation isSignedIn={this.state.isSignedIn} onRouteChange={this.onRouteChange} />
+      <Navigation isSignedIn={this.state.isSignedIn} 
+        onRouteChange={this.onRouteChange}
+        toggelModal={this.toggelModal}
+      />
+      {this.state.isProfileOpen && 
+        <Modal>
+           <Profile 
+           isProfileOpen={this.state.isProfileOpen} 
+           toggelModal={this.toggelModal}
+           user={this.state.user}
+           loadUser= {this.loadUser}
+           />
+        </Modal>
+      }
       {
         this.state.route === 'home' ?
         <div>
@@ -130,7 +159,7 @@ class App extends React.Component {
             onInputChange={this.onInputChange}
             onButtonSubmit={this.onButtonSubmit}
           />
-          <FaceRecognition box={this.state.box} imageUrl={this.state.imageUrl} />
+          <FaceRecognition boxs={this.state.boxs} imageUrl={this.state.imageUrl} />
         </div>
         :(
           this.state.route === 'signin' ?

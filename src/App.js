@@ -48,6 +48,37 @@ class App extends React.Component {
     this.state = initialState;
   }
 
+  componentDidMount(){
+    const token = window.sessionStorage.getItem('token');
+    fetch('http://localhost:3000/signin', {
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      }
+    })
+    .then(resp => resp.json())
+    .then(data => {
+      if(data && data.id){
+        fetch(`http://localhost:3000/user/${data.id}`, {
+          method: 'get',
+          headers: {
+           'Content-Type': 'application/json',
+           'Authorization': token
+          }
+        })
+        .then(resp => resp.json())
+        .then(user => {
+          if(user && user.email){
+            this.loadUser(user);
+            this.onRouteChange('home')
+          }
+        })
+      }
+    })
+    .catch(console.log);
+  }
+
   loadUser = data => {
     this.setState({ user: {
       id: data.id,
@@ -60,23 +91,28 @@ class App extends React.Component {
   }
 
   calculateFaceLocation = data => {
-    const image = document.getElementById('inputimage');
-    const width = Number(image.width);
-    const height = Number(image.height);
-    const clarifaiFace = data.outputs[0].data.regions.map(region => {
-      const position = region.region_info.bounding_box
-      return {
-        leftCol: position.left_col * width,
-        topRow: position.top_row * height,
-        rightCol: width - (position.right_col * width),
-        bottomRow: height - (position.bottom_row * height)
-      }
-    })
-    return clarifaiFace;
+    if(data && data.outputs){
+      const image = document.getElementById('inputimage');
+      const width = Number(image.width);
+      const height = Number(image.height);
+      const clarifaiFace = data.outputs[0].data.regions.map(region => {
+        const position = region.region_info.bounding_box
+        return {
+          leftCol: position.left_col * width,
+          topRow: position.top_row * height,
+          rightCol: width - (position.right_col * width),
+          bottomRow: height - (position.bottom_row * height)
+        }
+      })
+      return clarifaiFace;
+    }
+    return;
   }
 
   displayFaceBox = boxs => {
-    this.setState({ boxs });
+    if(boxs){
+      this.setState({ boxs });
+    }
   }
 
   onInputChange = event => {
@@ -87,7 +123,10 @@ class App extends React.Component {
       this.setState({ imageUrl: this.state.input });
       fetch('http://localhost:3000/imageurl', {
         method: 'post',
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': window.sessionStorage.getItem('token')
+        },
         body: JSON.stringify({
           input: this.state.input
         })
@@ -97,7 +136,10 @@ class App extends React.Component {
         if (response) {
           fetch('http://localhost:3000/image', {
             method: 'put',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': window.sessionStorage.getItem('token')
+            },
             body: JSON.stringify({
               id: this.state.user.id
             })
